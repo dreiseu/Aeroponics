@@ -57,6 +57,20 @@ const int HUMID_THRESHOLD_LOWER = 70;
 long duration;
 int distance;
 
+// GSM Library
+#define TINY_GSM_MODEM_SIM800
+#include <TinyGsmClient.h>
+#include <BlynkSimplyTinyGSM.h>
+
+// Your GPRS credentials
+char auth[] = "YourAuthToken";
+char apn[]  = "YourAPN";
+char user[] = "";
+char pass[] = "";
+
+#define SerialAT Serial1 //Connect SIM_RX to 18, SIM_TX to 19 of MEGA
+TinyGsm modem(SerialAT);
+
 void ultrasonic() {
   digitalWrite(trigPin, LOW);
   delay(2000);
@@ -157,6 +171,9 @@ void setup() {
   // Start LCD
   lcd.begin();
   lcd.backlight();
+  // Set GSM module baud rate
+  SerialAT.begin(115200);
+  modem.init() // or modem.restart()
   // DHT22 Connect
   dht.begin();
   // Initialize HC-SR04
@@ -169,9 +186,14 @@ void setup() {
   pinMode(RELAY_PUMP1_PIN, OUTPUT);
   pinMode(RELAY_PUMP2_PIN, OUTPUT);
   pinMode(RELAY_FAN_PIN, OUTPUT);
+  // Blynk
+  Blynk.begin(auth, modem, apn, user, pass);
+  // timer.setInterval(1000L, );
 }
 
 void loop() {
+  Blynk.run();
+  timer.run();
   tower();
   dht22();
   ds18b20();
