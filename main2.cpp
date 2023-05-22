@@ -1,8 +1,5 @@
 #include <Arduino.h>
 
-// GSM
-// Peristaltic
-
 // Arduino Serial Monitor
 #define SerialMon Serial
 
@@ -60,7 +57,7 @@ int distance;
 // GSM Library
 #define TINY_GSM_MODEM_SIM800
 #include <TinyGsmClient.h>
-#include <BlynkSimplyTinyGSM.h>
+#include <BlynkSimpleTinyGSM.h>
 
 // Your GPRS credentials
 char auth[] = "YourAuthToken";
@@ -70,9 +67,7 @@ char pass[] = "";
 
 #define SerialAT Serial1 //Connect SIM_RX to 18, SIM_TX to 19 of MEGA
 TinyGsm modem(SerialAT);
-
 BlynkTimer timer;
-#define INTERVAL 1000L
 
 void ultrasonic() {
   digitalWrite(trigPin, LOW);
@@ -83,7 +78,11 @@ void ultrasonic() {
   duration = pulseIn(echoPin, HIGH);
   distance = duration * 0.034 / 2;
   Blynk.virtualWrite(V0, distance);
-  return distance;
+  tower();
+
+  lcd.setCursor(8, 1);
+  lcd.print("D: ");
+  lcd.print(distance);
 }
 
 void tower() {
@@ -96,7 +95,7 @@ void tower() {
     if ((pinState1 == HIGH) && (currentMillis1 - previousMillis1 >= OnTime)) {
       pinState1 = LOW;
       previousMillis1 = currentMillis1;
-      digitalWrite(RELAY_PUMP_PIN1, pinState1);
+      digitalWrite(RELAY_PUMP1_PIN, pinState1);
     }
     else if ((pinState1 == LOW) && (currentMillis1 - previousMillis1 >= OffTime)) {
       pinState1 = HIGH;
@@ -118,7 +117,7 @@ void dht22() {
     }
     else if ((pinState2 == LOW) && (currentMillis2 - previousMillis2 >= 10000)) {
       pinState2 = HIGH;
-      previousMilli2 = currentMillis2;
+      previousMillis2 = currentMillis2;
       digitalWrite(RELAY_PUMP2_PIN, pinState2);
     }
   }
@@ -126,6 +125,16 @@ void dht22() {
     //SerialMon.println("The humidity is at 100%.");
     digitalWrite(RELAY_PUMP2_PIN, LOW);
   }
+  Blynk.virtualWrite(V1, h);
+  Blynk.virtualWrite(V2, t);
+
+  lcd.setCursor(0, 0);
+  lcd.print("H: ");
+  lcd.print(h);
+
+  lcd.setCursor(8, 0);
+  lcd.print("ET: ");
+  lcd.print(t);
 }
 
 void ds18b20() {
@@ -141,11 +150,17 @@ void ds18b20() {
     else if ((fanState == LOW) && (currentMillis3 - previousMillis3 >= 10000)) {
       fanState = HIGH;
       previousMillis3 = currentMillis3;
-      digitalWrite(RELAY_FAN_PIN, fanState;
+      digitalWrite(RELAY_FAN_PIN, fanState);
     }
   }
+  Blynk.virtualWrite(V3, st);
+
+  lcd.setCursor(0, 1);
+  lcd.print("ST: ");
+  lcd.print(st);
 }
 
+/*
 void displayLCD() {
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -159,25 +174,26 @@ void displayLCD() {
   delay(2000);
   lcd.clear();
   lcd.setCursor(0,0);
-  lcd.print(F("S.Temp: ");
+  lcd.print(F("S.Temp: "));
   lcd.print(sensors.getTempCByIndex(0));
   lcd.print(" C");
   lcd.setCursor(0, 1);
-  lcd.print(F("Dist.: ");
+  lcd.print(F("Dist.: "));
   lcd.print(distance);
   lcd.print(" cm");
   delay(2000);
 }
+*/
 
 void setup() {
   // Start Serial Monitor
   SerialMon.begin(9600);
   // Start LCD
-  lcd.begin();
+  lcd.init();
   lcd.backlight();
   // Set GSM module baud rate
   SerialAT.begin(115200);
-  modem.init() // or modem.restart()
+  modem.init(); // or modem.restart()
   // DHT22 Connect
   dht.begin();
   // Initialize HC-SR04
@@ -185,22 +201,18 @@ void setup() {
   pinMode(echoPin, INPUT);
   // DS18B20 Connect
   sensors.begin();
-  numberOfDevices = sensors.getDeviceCount();
   // Initialize Submersible Pump
   pinMode(RELAY_PUMP1_PIN, OUTPUT);
   pinMode(RELAY_PUMP2_PIN, OUTPUT);
   pinMode(RELAY_FAN_PIN, OUTPUT);
   // Blynk
   Blynk.begin(auth, modem, apn, user, pass);
-  // timer.setInterval(1000L, );
+  timer.setInterval(100L, ultrasonic);
+  timer.setInterval(100L, dht22);
+  timer.setInterval(100L, ds18b20);
 }
 
 void loop() {
   Blynk.run();
   timer.run();
-  // Blynk and timer must the only variables in the void loop
-  tower();
-  dht22();
-  ds18b20();
-  displayLCD();
 }
