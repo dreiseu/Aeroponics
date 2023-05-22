@@ -194,6 +194,7 @@ void setup() {
 void loop() {
   Blynk.run();
   timer.run();
+  // Blynk and timer must the only variables in the void loop
   tower();
   dht22();
   ds18b20();
