@@ -71,6 +71,9 @@ char pass[] = "";
 #define SerialAT Serial1 //Connect SIM_RX to 18, SIM_TX to 19 of MEGA
 TinyGsm modem(SerialAT);
 
+BlynkTimer timer;
+#define INTERVAL 1000L
+
 void ultrasonic() {
   digitalWrite(trigPin, LOW);
   delay(2000);
@@ -79,6 +82,7 @@ void ultrasonic() {
   digitalWrite(trigPin, LOW);
   duration = pulseIn(echoPin, HIGH);
   distance = duration * 0.034 / 2;
+  Blynk.virtualWrite(V0, distance);
   return distance;
 }
 
