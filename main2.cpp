@@ -27,6 +27,11 @@ OneWire oneWire(DS18PIN);
 DallasTemperature sensors(&oneWire);
 
 // Relay Pins
+/*
+#define PERIS1 7
+#define PERIS2 8
+#define PERIS3 9
+*/
 #define RELAY_PUMP1_PIN 10
 #define RELAY_PUMP2_PIN 11
 #define RELAY_FAN_PIN 12
@@ -46,7 +51,7 @@ unsigned long OnTime = 180000;
 unsigned long OffTime = 720000;
 
 // Threshold Values
-const int HUMID_THRESHOLD_LOWER = 70;
+const int HUMID_THRESHOLD = 70;
 
 // HCSR04
 #define trigPin 4
@@ -79,10 +84,11 @@ void ultrasonic() {
   distance = duration * 0.034 / 2;
   Blynk.virtualWrite(V0, distance);
   tower();
-
+  /*
   lcd.setCursor(8, 1);
   lcd.print("D: ");
   lcd.print(distance);
+  */
 }
 
 void tower() {
@@ -109,7 +115,7 @@ void dht22() {
   unsigned long currentMillis2 = millis();
   float h = dht.readHumidity();
   float t = dht.readTemperature();
-  if (h < HUMID_THRESHOLD_LOWER) {
+  if (h < HUMID_THRESHOLD) {
     if ((pinState2 == HIGH) && (currentMillis2 - previousMillis2 >= 5000)) {
       pinState2 = LOW;
       previousMillis2 = currentMillis2;
@@ -121,13 +127,13 @@ void dht22() {
       digitalWrite(RELAY_PUMP2_PIN, pinState2);
     }
   }
-  else if (h >= HUMID_THRESHOLD_LOWER) {
+  else if (h >= HUMID_THRESHOLD) {
     //SerialMon.println("The humidity is at 100%.");
     digitalWrite(RELAY_PUMP2_PIN, LOW);
   }
   Blynk.virtualWrite(V1, h);
   Blynk.virtualWrite(V2, t);
-
+  /*
   lcd.setCursor(0, 0);
   lcd.print("H: ");
   lcd.print(h);
@@ -135,6 +141,7 @@ void dht22() {
   lcd.setCursor(8, 0);
   lcd.print("ET: ");
   lcd.print(t);
+  */
 }
 
 void ds18b20() {
@@ -154,36 +161,29 @@ void ds18b20() {
     }
   }
   Blynk.virtualWrite(V3, st);
-
+  /*
   lcd.setCursor(0, 1);
   lcd.print("ST: ");
   lcd.print(st);
+  */
 }
 
-/*
 void displayLCD() {
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print(F("Humidity: "));
+  lcd.print(F("H: "));
   lcd.print(dht.readHumidity());
-  lcd.print("%");
-  lcd.setCursor(0, 1);
-  lcd.print(F("E.Temp: "));
+  lcd.setCursor(8, 0);
+  lcd.print(F("ET: "));
   lcd.print(dht.readTemperature());
-  lcd.print(" C");
-  delay(2000);
-  lcd.clear();
-  lcd.setCursor(0,0);
-  lcd.print(F("S.Temp: "));
-  lcd.print(sensors.getTempCByIndex(0));
-  lcd.print(" C");
   lcd.setCursor(0, 1);
-  lcd.print(F("Dist.: "));
+  lcd.print(F("ST: "));
+  lcd.print(sensors.getTempCByIndex(0));
+  lcd.setCursor(8, 1);
+  lcd.print(F("D: "));
   lcd.print(distance);
-  lcd.print(" cm");
-  delay(2000);
 }
-*/
+
 
 void setup() {
   // Start Serial Monitor
@@ -210,6 +210,7 @@ void setup() {
   timer.setInterval(100L, ultrasonic);
   timer.setInterval(100L, dht22);
   timer.setInterval(100L, ds18b20);
+  timer.setInterval(100L, displayLCD);
 }
 
 void loop() {
