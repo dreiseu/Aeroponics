@@ -16,6 +16,8 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 #define DHTPIN 2
 #define DHTTYPE DHT22 
 DHT dht(DHTPIN, DHTTYPE);
+float h = 0;
+float t = 0;
 
 // DS18B20 Library
 #include <OneWire.h>
@@ -53,13 +55,15 @@ unsigned long previousMillis3 = 0;
 unsigned long previousMillis4 = 0;
 
 // Intervals
-unsigned long OnTime = 180000;
-unsigned long OffTime = 720000;
+unsigned long OnTime1 = 180000;
+unsigned long OffTime1 = 720000;
+unsigned long OnTime2 = 5000;
+unsigned long OffTime2 = 10000;
 
 // Threshold Values
 const int TEMP_THRESHOLD = 30;
 const int DIST_THRESHOLD = 5;
-const int DIST_THRESHOLD_REFILL = 20;
+const int DIST_THRESHOLD_REFILL = 25;
 const int HUMID_THRESHOLD = 70;
 
 //GSM Library
@@ -86,26 +90,24 @@ BlynkTimer timer;
 HX711_ADC LoadCell(HX711_dout, HX711_sck);
 
 const int calVal_calVal_eepromAdress = 0;
-
+float i = 0;
 const int SolA = 1;
 const int SolB = 3;
 const int Water = 5;
 
 void tower() {
   unsigned long currentMillis1 = millis();
-  if (distance == DIST_THRESHOLD_REFILL) {
+  if (distance <= DIST_THRESHOLD_REFILL) {
     digitalWrite(RELAY_PUMP1_PIN, LOW);
-    
     static boolean newDataReady = 0;
     const int serialPrintInterval = 500;
     if (LoadCell.update()) newDataReady = true;
-   
     if (newDataReady) 
     {
       unsigned long currentMillis4 = millis();
       if (currentMillis4 > previousMillis4 + serialPrintInterval) 
       {
-        float i = LoadCell.getData();
+        i = LoadCell.getData();
         SerialMon.print("Load Cell Output Val: ");
         SerialMon.println(i);
         newDataReady = 0;
@@ -137,13 +139,13 @@ void tower() {
     }
   }
   else {
-    if ((pinState1 == HIGH) && (currentMillis1 - previousMillis1 >= OnTime))
+    if ((pinState1 == HIGH) && (currentMillis1 - previousMillis1 >= OnTime1))
     {
       pinState1 = LOW;
       previousMillis1 = currentMillis1;
       digitalWrite(RELAY_PUMP1_PIN, pinState1);
     }
-    else if ((pinState1 == LOW) && (currentMillis1 - previousMillis1 >= OffTime))
+    else if ((pinState1 == LOW) && (currentMillis1 - previousMillis1 >= OffTime1))
     {
       pinState1 = HIGH;
       previousMillis1 = currentMillis1;
@@ -155,9 +157,9 @@ void tower() {
 void ultrasonic()
 {
   digitalWrite(trigPin, LOW);
-  delay(2000);
+  delayMicroseconds(2);
   digitalWrite(trigPin, HIGH);
-  delay(10000);
+  delayMicroseconds(10);
   digitalWrite(trigPin, LOW);
   duration = pulseIn(echoPin, HIGH);
   distance = duration * 0.034 / 2;
@@ -171,28 +173,21 @@ void ultrasonic()
 
 void dht22() {
   unsigned long currentMillis2 = millis();
-  float h = dht.readHumidity();
-  float t = dht.readTemperature();
+  h = dht.readHumidity();
+  t = dht.readTemperature();
   SerialMon.print("H: ");
   SerialMon.println(h);
   SerialMon.print("T: ");
   SerialMon.println(t);
-  lcd.setCursor(0, 0);
-  lcd.print(F("H:"));
-  lcd.print(h);
-  lcd.setCursor(8, 0);
-  lcd.print(F("ET:"));
-  lcd.print(t);
-
   if (h < HUMID_THRESHOLD)
   {
-    if ((pinState2 == HIGH) && (currentMillis2 - previousMillis2 >= 5000))
+    if ((pinState2 == HIGH) && (currentMillis2 - previousMillis2 >= OnTime2))
     {
       pinState2 = LOW;
       previousMillis2 = currentMillis2;
       digitalWrite(RELAY_PUMP2_PIN, pinState2);
     }
-    else if ((pinState2 == LOW) && (currentMillis2 - previousMillis2 >= 10000))
+    else if ((pinState2 == LOW) && (currentMillis2 - previousMillis2 >= OffTime2))
     {
       pinState2 = HIGH;
       previousMillis2 = currentMillis2;
@@ -211,9 +206,6 @@ void ds18b20() {
   tempC = sensors.getTempCByIndex(0);
   SerialMon.print("ST: ");
   SerialMon.println(tempC);
-  lcd.setCursor(0, 1);
-  lcd.print(F("ST:"));
-  lcd.print(tempC);
   if (tempC > TEMP_THRESHOLD)
   {
     if ((fanState == HIGH) && (currentMillis3 - previousMillis3 >= 5000))
@@ -245,6 +237,19 @@ void sendSTemp() {
 
 void sendDistance() {
   Blynk.virtualWrite(V3, distance);
+}
+
+void displayLCD() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(F("H:"));
+  lcd.print(h);
+  lcd.setCursor(8, 0);
+  lcd.print(F("ET:"));
+  lcd.print(t);
+  lcd.setCursor(0, 1);
+  lcd.print(F("ST:"));
+  lcd.print(tempC);
 }
 
 void setup() 
@@ -299,10 +304,10 @@ void setup()
 
 void loop()
 {
-  lcd.clear();
   ultrasonic();
   dht22();
   ds18b20();
+  displayLCD();
   Blynk.run();
   timer.run();
 }
