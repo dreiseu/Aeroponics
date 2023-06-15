@@ -44,8 +44,8 @@ unsigned long previousMillis2 = 0;
 unsigned long previousMillis3 = 0;
 unsigned long previousMillis4 = 0;
 // Intervals
-unsigned long OnTime1 = 5000;
-unsigned long OffTime1 = 10000;
+unsigned long OnTime1 = 180000;
+unsigned long OffTime1 = 720000;
 unsigned long OnTime2 = 5000;
 unsigned long OffTime2 = 10000;
 // Threshold Values
@@ -76,9 +76,9 @@ HX711_ADC LoadCell(HX711_dout, HX711_sck);
 const int calVal_calVal_eepromAdress = 0;
 float i = 0;
 static boolean newDataReady = 0;
-const int Water = 4000;
-const int SolA = 8000;
-const int SolB = 12000;
+const int Water = 10000;
+const int SolA = 10010;
+const int SolB = 10020;
 
 void ultrasonic() {
   digitalWrite(trigPin, LOW);
